@@ -7,6 +7,7 @@ from sprites import ModernPlayer, ModernBullet
 from game_states import GameState, MenuScreen, PauseScreen, GameOverScreen
 from effects import ExplosionEffect, FeedbackText
 from utils import create_gradient_surface
+from js import document
 
 vocab_list = {
 "criticism": "making an unfavorable remark",
@@ -98,6 +99,11 @@ class ModernGame:
         self.menu_screen = MenuScreen()
         self.pause_screen = PauseScreen()
         self.game_over_screen = GameOverScreen()
+        
+        # 添加游戏加载完成事件
+        load_event = document.createEvent('Event')
+        load_event.initEvent('game-loaded', True, True)
+        document.dispatchEvent(load_event)
         
     def reset_game(self):
         self.player = ModernPlayer()
