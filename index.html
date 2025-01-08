@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Vocabulary Space</title>
     <style>
         #loading {
@@ -17,38 +17,49 @@
             justify-content: center;
             align-items: center;
             z-index: 1000;
-            color: white;
+        }
+        
+        .loading-text {
+            color: #fff;
+            font-size: 24px;
+            margin-bottom: 20px;
             font-family: Arial, sans-serif;
         }
         
-        .spinner {
+        .loading-spinner {
             width: 50px;
             height: 50px;
             border: 5px solid #f3f3f3;
             border-top: 5px solid #3498db;
             border-radius: 50%;
             animation: spin 1s linear infinite;
-            margin-bottom: 20px;
         }
         
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        
+        canvas {
+            display: block;
+            margin: 0 auto;
+        }
     </style>
 </head>
 <body>
     <div id="loading">
-        <div class="spinner"></div>
-        <p>Loading game resources...</p>
+        <div class="loading-text">正在加载游戏资源...</div>
+        <div class="loading-spinner"></div>
     </div>
     
     <script>
-        window.addEventListener('game-loaded', function() {
+        // 监听游戏加载完成事件
+        document.addEventListener('game-loaded', function() {
+            // 隐藏loading提示
             document.getElementById('loading').style.display = 'none';
         });
     </script>
     
-    <!-- pygbag 会自动插入游戏相关脚本 -->
+    <script src="target/main.js"></script>
 </body>
 </html> 
