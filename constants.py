@@ -9,7 +9,7 @@ FPS = 60
 PLAYER_SPEED = 8
 BULLET_SPEED = 7
 ENEMY_SPEED = 1
-GAME_DURATION = 120  # seconds
+GAME_DURATION = 90  # seconds
 
 # Colors
 WHITE = (255, 255, 255)

@@ -4,10 +4,10 @@ from typing import List
 import asyncio
 from constants import *
 from sprites import ModernPlayer, ModernBullet
-from game_states import GameState, MenuScreen, PauseScreen, GameOverScreen
+from game_states import GameState, MenuScreen, PauseScreen, GameOverScreen, LeaderboardScreen
 from effects import ExplosionEffect, FeedbackText
 from utils import create_gradient_surface
-from js import document
+import shelve
 
 vocab_list = {
 "criticism": "making an unfavorable remark",
@@ -99,11 +99,9 @@ class ModernGame:
         self.menu_screen = MenuScreen()
         self.pause_screen = PauseScreen()
         self.game_over_screen = GameOverScreen()
+        self.leaderboard_screen = LeaderboardScreen()
         
         # 添加游戏加载完成事件
-        load_event = document.createEvent('Event')
-        load_event.initEvent('game-loaded', True, True)
-        document.dispatchEvent(load_event)
         
     def reset_game(self):
         self.player = ModernPlayer()
@@ -133,6 +131,57 @@ class ModernGame:
             x = spacing * (i + 0.5) - 90
             is_correct = word == self.current_word
             self.enemies.append(ModernEnemy(x, 50, word, is_correct))
+    
+    def prompt_for_name(self):
+        name = ""
+        font = pygame.font.Font(None, 74)
+        instruction_font = pygame.font.Font(None, 50)
+        input_box = pygame.Rect(SCREEN_WIDTH//2 - 100, SCREEN_HEIGHT//2 - 50, 200, 50)
+        color_inactive = pygame.Color('lightskyblue3')
+        color_active = pygame.Color('dodgerblue2')
+        color = color_inactive
+        active = False
+        done = False
+
+        while not done:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.running = False
+                    done = True
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    if input_box.collidepoint(event.pos):
+                        active = not active
+                    else:
+                        active = False
+                    color = color_active if active else color_inactive
+                elif event.type == pygame.KEYDOWN:
+                    if active:
+                        if event.key == pygame.K_RETURN:
+                            done = True
+                        elif event.key == pygame.K_BACKSPACE:
+                            name = name[:-1]
+                        else:
+                            name += event.unicode
+
+            self.screen.blit(self.background, (0, 0))
+            instruction_surface = instruction_font.render("Please type in your name:", True, color)
+            self.screen.blit(instruction_surface, (SCREEN_WIDTH//2 - instruction_surface.get_width()//2, SCREEN_HEIGHT//2 - 100))
+            txt_surface = font.render(name, True, color)
+            width = max(200, txt_surface.get_width()+10)
+            input_box.w = width
+            self.screen.blit(txt_surface, (input_box.x+5, input_box.y+5))
+            pygame.draw.rect(self.screen, color, input_box, 2)
+            pygame.display.flip()
+            self.clock.tick(30)
+
+        return name
+    
+    def save_score(self):
+        with shelve.open('leaderboard') as db:
+            scores = db.get('scores', [])
+            scores.append((self.player_name, self.score))
+            db['scores'] = scores
+            db.close()  # Ensure the database is closed properly
             
     def handle_events(self):
         for event in pygame.event.get():
@@ -145,12 +194,16 @@ class ModernGame:
                     self.game_state = GameState.PAUSED
                 elif event.key == pygame.K_p and self.game_state == GameState.PAUSED:
                     self.game_state = GameState.PLAYING
+                elif event.key == pygame.K_l and self.game_state == GameState.MENU:
+                    self.game_state = GameState.LEADERBOARD
                 elif event.key == pygame.K_SPACE:
                     if self.game_state == GameState.MENU:
+                        self.player_name = self.prompt_for_name()
                         self.game_state = GameState.PLAYING
                         self.reset_game()
                         self.generate_round()
                     elif self.game_state == GameState.GAME_OVER:
+                        self.save_score()
                         self.game_state = GameState.MENU
                     elif self.game_state == GameState.PLAYING:
                         bullet = ModernBullet(
@@ -158,6 +211,12 @@ class ModernGame:
                             self.player.y
                         )
                         self.bullets.append(bullet)
+                    elif self.game_state == GameState.LEADERBOARD:
+                        self.game_state = GameState.MENU
+                elif event.key == pygame.K_RIGHT and self.game_state == GameState.LEADERBOARD:
+                    self.leaderboard_screen.next_page()
+                elif event.key == pygame.K_LEFT and self.game_state == GameState.LEADERBOARD:
+                    self.leaderboard_screen.prev_page()
         
         if self.game_state == GameState.PLAYING:
             keys = pygame.key.get_pressed()
@@ -286,18 +345,19 @@ class ModernGame:
                 self.pause_screen.draw(self.screen)
         elif self.game_state == GameState.GAME_OVER:
             self.game_over_screen.draw(self.screen, self.score)
+        elif self.game_state == GameState.LEADERBOARD:
+            self.leaderboard_screen.draw(self.screen)
             
         pygame.display.flip()
         
-    async def run(self):
+    def run(self):
         while self.running:
             self.handle_events()
             self.update()
             self.draw()
             self.clock.tick(FPS)
-            await asyncio.sleep(0)
             
         pygame.quit()
 
 game = ModernGame()
-asyncio.run(game.run())
+game.run()
